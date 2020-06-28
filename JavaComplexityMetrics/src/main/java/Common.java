@@ -16,17 +16,6 @@ public final class Common {
     static String ROOT_INPUT_PATH = "";
     static String ROOT_OUTPUT_PATH = "";
 
-    static String readJavaCode(File javaFile) {
-        String txtCode = "";
-        try {
-            txtCode = new String(Files.readAllBytes(javaFile.toPath()));
-            if(!txtCode.startsWith("class")) txtCode = "class T { \n" + txtCode + "\n}";
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return txtCode;
-    }
-
     static CompilationUnit getParseUnit(File javaFile) {
         CompilationUnit root = null;
         try {
@@ -44,7 +33,7 @@ public final class Common {
         return root;
     }
 
-    static void saveEmbedding(File targetFile, String txtEmbedding) {
+    static void saveEmbeddings(File targetFile, String txtEmbedding) {
         try {
             if (targetFile.getParentFile().exists() || targetFile.getParentFile().mkdirs()) {
                 if (targetFile.exists() || targetFile.createNewFile()) {
