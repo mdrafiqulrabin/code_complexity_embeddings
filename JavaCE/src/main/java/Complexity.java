@@ -13,7 +13,6 @@ import java.io.File;
 import java.util.Arrays;
 
 public class Complexity extends VoidVisitorAdapter<Object> {
-    private final String mMethodName = "Complexity";
     private File mJavaFile = null;
     private String mLabelStr;
 
@@ -50,30 +49,33 @@ public class Complexity extends VoidVisitorAdapter<Object> {
 
     @Override
     public void visit(CompilationUnit cu, Object obj) {
-        complexityASTParser(cu);
-        mLabelStr = Common.getLabelStr(cu);
+        for (MethodDeclaration md: cu.findAll(MethodDeclaration.class)) {
+            complexityASTParser(md);
+        }
+        String[] parts = mJavaFile.toString().split("/");
+        mLabelStr = parts[parts.length - 2]; //folder as sort type
         super.visit(cu, obj);
     }
 
-    private void complexityASTParser(CompilationUnit cu) {
+    private void complexityASTParser(MethodDeclaration md) {
 
-        mLOC = cu.findAll(Statement.class).size();
+        mLOC += md.findAll(Statement.class).size();
 
-        mBlock = cu.findAll(BlockStmt.class).size();
+        mBlock += md.findAll(BlockStmt.class).size();
 
-        mBasicBlock = Common.getBasicBlocks(cu).size();
+        mBasicBlock += Common.getBasicBlocks(md).size();
 
-        mParameter = cu.findAll(Parameter.class).size();
+        mParameter += md.findAll(Parameter.class).size();
 
-        mLocalVariable = cu.findAll(VariableDeclarator.class).size();
+        mLocalVariable += md.findAll(VariableDeclarator.class).size();
 
-        mGlobalVariable = cu.findAll(SimpleName.class,
+        mGlobalVariable += md.findAll(SimpleName.class,
                 node -> (
                         node.getParentNode().isPresent()
                         && node.getParentNode().get() instanceof NameExpr
                 )).size();
 
-        mLoop = cu.findAll(Statement.class,
+        mLoop += md.findAll(Statement.class,
                 stmt -> (
                         stmt instanceof WhileStmt
                         || stmt instanceof DoStmt
@@ -81,52 +83,52 @@ public class Complexity extends VoidVisitorAdapter<Object> {
                         || stmt instanceof ForEachStmt
                 )).size();
 
-        mJump = cu.findAll(Statement.class,
+        mJump += md.findAll(Statement.class,
                 stmt -> (
                         stmt instanceof BreakStmt
                         || stmt instanceof ContinueStmt
                         || stmt instanceof ReturnStmt
                 )).size();
 
-        mDecision = cu.findAll(IfStmt.class).size()
-                + cu.findAll(BlockStmt.class,
+        mDecision += md.findAll(IfStmt.class).size()
+                + md.findAll(BlockStmt.class,
                     elseStmt -> (
                                 elseStmt.getParentNode().isPresent()
                                 && elseStmt.getParentNode().get() instanceof IfStmt
                                 && ((IfStmt) elseStmt.getParentNode().get()).getElseStmt().isPresent()
                                 && ((IfStmt) elseStmt.getParentNode().get()).getElseStmt().get() == elseStmt
                     )).size()
-                + cu.findAll(SwitchEntry.class).size();
+                + md.findAll(SwitchEntry.class).size();
 
-        mCondition = cu.findAll(Expression.class,
+        mCondition += md.findAll(Expression.class,
                 stmt -> (
                         stmt instanceof UnaryExpr
                         || stmt instanceof BinaryExpr
                         || stmt instanceof ConditionalExpr
                 )).size();
 
-        mInstance = cu.findAll(ObjectCreationExpr.class).size();
+        mInstance += md.findAll(ObjectCreationExpr.class).size();
 
-        mFunctionCall = cu.findAll(MethodCallExpr.class).size();
+        mFunctionCall += md.findAll(MethodCallExpr.class).size();
 
-        mErrorHandler = cu.findAll(TryStmt.class).size()
-                + cu.findAll(CatchClause.class).size()
-                + cu.findAll(BlockStmt.class,
+        mErrorHandler += md.findAll(TryStmt.class).size()
+                + md.findAll(CatchClause.class).size()
+                + md.findAll(BlockStmt.class,
                     finallyStmt -> (
                                     finallyStmt.getParentNode().isPresent()
                                     && finallyStmt.getParentNode().get() instanceof TryStmt
                                     && ((TryStmt) finallyStmt.getParentNode().get()).getFinallyBlock().isPresent()
                                     && ((TryStmt) finallyStmt.getParentNode().get()).getFinallyBlock().get() == finallyStmt
                     )).size()
-                + cu.findAll(ThrowStmt.class).size();
+                + md.findAll(ThrowStmt.class).size();
 
-        mThreadHandler = cu.findAll(ClassOrInterfaceType.class,
+        mThreadHandler += md.findAll(ClassOrInterfaceType.class,
                 node -> (
                         node.getParentNode().isPresent()
                         && node.getParentNode().get() instanceof ObjectCreationExpr
                         && Arrays.asList("Runnable", "Thread", "Callable").contains(node.getName().toString())
                 )).size()
-                + cu.findAll(SynchronizedStmt.class).size();
+                + md.findAll(SynchronizedStmt.class).size();
 
         new TreeVisitor() {
             @Override
@@ -148,11 +150,10 @@ public class Complexity extends VoidVisitorAdapter<Object> {
                     }
                 } catch (Exception ignored) {}
             }
-        }.visitPreOrder(cu);
+        }.visitPreOrder(md);
 
-        MethodDeclaration md = cu.findAll(MethodDeclaration.class).get(0);
-        mASTNode = md.findAll(Node.class).size();
-        mASTToken = Common.getAllTokens(md).size();
+        mASTNode += md.findAll(Node.class).size();
+        mASTToken += Common.getAllTokens(md).size();
     }
 
     @Override

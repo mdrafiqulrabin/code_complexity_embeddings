@@ -30,9 +30,15 @@ public final class Common {
     static CompilationUnit getParseUnit(File javaFile) {
         CompilationUnit root = null;
         try {
-            String txtCode = Common.readJavaCode(javaFile);
-            root = StaticJavaParser.parse(txtCode);
+            try {
+                root = StaticJavaParser.parse(javaFile);
+            } catch (Exception ex) {
+                String codeText = new String(Files.readAllBytes(javaFile.toPath()));
+                codeText = "class C { \n" + codeText + "\n}";
+                root = StaticJavaParser.parse(codeText);
+            }
         } catch (Exception ex) {
+            System.out.println("\nError: " + javaFile);
             ex.printStackTrace();
         }
         return root;
@@ -52,10 +58,10 @@ public final class Common {
         }
     }
 
-    public static ArrayList<ArrayList<Statement>> getBasicBlocks(CompilationUnit cu) {
+    public static ArrayList<ArrayList<Statement>> getBasicBlocks(MethodDeclaration md) {
         ArrayList<Statement> innerStmts = new ArrayList<>();
         ArrayList<ArrayList<Statement>> basicBlockStmts = new ArrayList<>();
-        ArrayList<Statement> allStatements = (ArrayList<Statement>) cu.findAll(Statement.class);
+        ArrayList<Statement> allStatements = (ArrayList<Statement>) md.findAll(Statement.class);
         for ( Statement stmt: allStatements) {
             if (stmt instanceof ExpressionStmt
                     && stmt.findAll(MethodCallExpr.class).size() == 0
